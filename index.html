@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>交通出行碳排放计算</title>
+  <style>
+    :root {
+      --bg: #f0f4f0;
+      --card: #fff;
+      --primary: #2d5a3d;
+      --primary-light: #4a7c59;
+      --text: #1a2e1a;
+      --muted: #5c6b5c;
+      --border: #c8d5c8;
+      --shadow: rgba(0,0,0,0.06);
+      --chip: #f3f6f3;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 16px 14px 24px;
+    }
+    h1 {
+      font-size: 1.35rem;
+      color: var(--primary);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    label {
+      display: block;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fafcfa;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    select {
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #fafcfa;
+      appearance: none;
+    }
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 16px;
+    }
+    button:hover { background: var(--primary-light); }
+    .result-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.95rem;
+    }
+    .result-item:last-child { border-bottom: none; }
+    .result-value {
+      font-weight: 600;
+      color: var(--primary);
+    }
+    .unit { font-size: 0.85rem; color: var(--muted); margin-left: 4px; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+
+    /* 顶部栏（仿携程风） */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      padding: 10px 0 12px;
+    }
+    .nav {
+      display: grid;
+      grid-template-columns: 36px 1fr 36px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .nav-title {
+      text-align: center;
+      font-weight: 650;
+      color: var(--primary);
+      letter-spacing: 0.5px;
+    }
+    .icon-btn {
+      border: none;
+      background: transparent;
+      padding: 6px;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--primary);
+      font-size: 16px;
+    }
+    .searchbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: #eef4ee;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 12px;
+    }
+    .searchbar input {
+      border: none;
+      background: transparent;
+      padding: 0;
+      font-size: 0.95rem;
+    }
+    .searchbar input:focus { outline: none; }
+
+    /* 选择卡片（起终点） */
+    .pick-row {
+      display: grid;
+      grid-template-columns: 1fr 46px 1fr;
+      gap: 10px;
+      align-items: center;
+    }
+    .pick {
+      border: 1px solid var(--border);
+      background: #fafcfa;
+      border-radius: 10px;
+      padding: 12px 12px;
+      cursor: pointer;
+      min-height: 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .pick .t { font-size: 0.78rem; color: var(--muted); margin-bottom: 2px; }
+    .pick .v { font-size: 1.05rem; font-weight: 650; color: var(--text); }
+    .pick .placeholder { color: #8aa08a; font-weight: 600; }
+    .swap {
+      border: 1px solid var(--border);
+      background: #fff;
+      border-radius: 12px;
+      height: 48px;
+      cursor: pointer;
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* City 选择页 */
+    .view { display: none; }
+    .view.active { display: block; }
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-weight: 650;
+    }
+    .tab {
+      text-align: center;
+      padding: 10px 0;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+    }
+    .tab.active {
+      color: var(--text);
+      border-bottom-color: var(--primary);
+    }
+    .section-title {
+      font-size: 0.9rem;
+      font-weight: 650;
+      color: var(--muted);
+      margin: 14px 0 10px;
+    }
+    .chips {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .chip {
+      background: var(--chip);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 10px;
+      text-align: center;
+      cursor: pointer;
+      font-weight: 650;
+      color: var(--text);
+      user-select: none;
+    }
+    .list-wrap {
+      position: relative;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .city-list {
+      max-height: calc(100vh - 230px);
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0;
+      margin: 0;
+    }
+    .group-header {
+      padding: 10px 12px;
+      background: #f6faf6;
+      border-bottom: 1px solid var(--border);
+      font-weight: 750;
+      color: var(--muted);
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    .city-item {
+      padding: 12px;
+      border-bottom: 1px solid #eef2ee;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+    .city-item:last-child { border-bottom: none; }
+    .city-sub { color: var(--muted); font-size: 0.82rem; }
+    .index-bar {
+      position: absolute;
+      right: 6px;
+      top: 10px;
+      bottom: 10px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      padding: 6px 4px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.75);
+      border: 1px solid rgba(200,213,200,0.8);
+      user-select: none;
+    }
+    .idx {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4c6d4c;
+      padding: 2px 4px;
+      border-radius: 6px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .idx:hover { background: #eef4ee; }
+
+    .kv {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .kv:last-child { border-bottom: none; }
+    .kv .k { color: var(--muted); }
+    .kv .v { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 视图1：计算页 -->
+    <div class="view active" id="view-calc">
+      <div class="topbar">
+        <div class="nav">
+          <button class="icon-btn" type="button" title="返回" style="visibility:hidden">←</button>
+          <div class="nav-title">碳排放计算</div>
+          <span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="pick-row">
+          <div class="pick" id="pickFrom" role="button" tabindex="0">
+            <div class="t">出发地</div>
+            <div class="v placeholder" id="fromText">请选择</div>
+          </div>
+          <button class="swap" type="button" id="swapBtn" title="交换">⇅</button>
+          <div class="pick" id="pickTo" role="button" tabindex="0">
+            <div class="t">目的地</div>
+            <div class="v placeholder" id="toText">请选择</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top: 14px;">
+          <div>
+            <label for="mode">出行方式</label>
+            <select id="mode">
+              <option value="燃油车">燃油车</option>
+              <option value="电动车">电动车</option>
+              <option value="高铁">高铁</option>
+              <option value="飞机">飞机（自动短/长途）</option>
+            </select>
+          </div>
+          <div>
+            <label for="people">出行人数</label>
+            <select id="people">
+              <option value="1">1 人</option>
+              <option value="2">2 人</option>
+              <option value="3">3 人</option>
+              <option value="4">4 人</option>
+              <option value="5">5 人</option>
+              <option value="6">6 人</option>
+              <option value="7">7 人</option>
+              <option value="8">8 人</option>
+              <option value="9">9 人</option>
+              <option value="10">10 人</option>
+            </select>
+          </div>
+        </div>
+
+        <button type="button" id="calcBtn">计算</button>
+        <p class="hint">里程由“出发地/目的地”经纬度使用统一距离公式估算（不区分交通工具线路差异）。</p>
+      </div>
+
+      <div class="card" id="summaryCard" style="display:none;">
+        <div style="font-weight: 700; margin-bottom: 8px;">结果</div>
+        <div class="kv">
+          <div class="k">里程 L</div>
+          <div class="v"><span id="distanceText">-</span><span class="unit">km</span></div>
+        </div>
+        <div class="kv">
+          <div class="k">人数 n</div>
+          <div class="v"><span id="peopleText">-</span><span class="unit">人</span></div>
+        </div>
+        <div class="kv">
+          <div class="k">出行方式</div>
+          <div class="v" id="modeText">-</div>
+        </div>
+        <div class="kv">
+          <div class="k">碳排放量 C</div>
+          <div class="v"><span id="carbonText">-</span><span class="unit">kg CO₂</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 视图2：城市选择页 -->
+    <div class="view" id="view-city">
+      <div class="topbar">
+        <div class="nav">
+          <button class="icon-btn" type="button" id="backBtn" title="返回">←</button>
+          <div class="nav-title" id="cityTitle">选择城市</div>
+          <span></span>
+        </div>
+        <div class="searchbar">
+          <span style="color:#6a826a;">🔎</span>
+          <input id="citySearch" type="text" placeholder="请输入目的城市/车站名" autocomplete="off" />
+        </div>
+
+        <div class="tabs" aria-label="范围">
+          <div class="tab active" id="tabCN">国内</div>
+          <div class="tab" id="tabIntl" title="当前仅支持国内">国际</div>
+        </div>
+      </div>
+
+      <div class="section-title">热门城市</div>
+      <div class="chips" id="hotCities"></div>
+
+      <div class="section-title">按拼音排序</div>
+      <div class="list-wrap">
+        <div class="city-list" id="cityList"></div>
+        <div class="index-bar" id="indexBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./cities.cn.js"></script>
+  <script>
+    // 与 碳排放计算公式.md 一致
+    const COEFFICIENTS = {
+      '燃油车': 0.1453,
+      '电动车': 0.034,
+      '高铁': 0.028,
+      '飞机短途': 0.24, // L < 1000 km
+      '飞机长途': 0.18  // L >= 1000 km
+    };
+
+    const HOT_CITY_NAMES = ['北京','上海','杭州','广州','南京','成都','西安','郑州','武汉','长沙','苏州','厦门','深圳','天津'];
+
+    const state = {
+      picking: 'from', // 'from' | 'to'
+      from: null,
+      to: null,
+      mode: '燃油车',
+      people: 1
+    };
+
+    // ---------- 路由/视图 ----------
+    function showView(id) {
+      document.getElementById('view-calc').classList.toggle('active', id === 'calc');
+      document.getElementById('view-city').classList.toggle('active', id === 'city');
+    }
+
+    function openCityPicker(picking) {
+      state.picking = picking;
+      document.getElementById('cityTitle').textContent = picking === 'from' ? '选择出发地' : '选择目的地';
+      document.getElementById('citySearch').value = '';
+      renderCityList();
+      showView('city');
+      // 小延迟聚焦，避免某些移动端不生效
+      setTimeout(() => document.getElementById('citySearch').focus(), 50);
+    }
+
+    function backToCalc() {
+      showView('calc');
+    }
+
+    // ---------- 计算 ----------
+    function round2(x) { return Math.round(x * 100) / 100; }
+
+    function getAirType(L) { return L < 1000 ? '飞机短途' : '飞机长途'; }
+
+    function calcCarbon(type, L, n) {
+      const k = COEFFICIENTS[type];
+      return k * L * n;
+    }
+
+    // Haversine 估算球面距离（km）
+    function haversineKm(lat1, lon1, lat2, lon2) {
+      const R = 6371; // km
+      const toRad = (d) => d * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat/2) ** 2 +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * (Math.sin(dLon/2) ** 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function computeDistance() {
+      if (!state.from || !state.to) return null;
+      return haversineKm(state.from.lat, state.from.lon, state.to.lat, state.to.lon);
+    }
+
+    function computeAndRender() {
+      if (!state.from || !state.to) {
+        alert('请先选择出发地和目的地');
+        return;
+      }
+      const L = computeDistance();
+      if (!L || !isFinite(L)) {
+        alert('里程计算失败，请更换城市再试');
+        return;
+      }
+      const n = state.people;
+      const mode = state.mode;
+
+      let carbonModeText = mode;
+      let carbon = 0;
+      if (mode === '飞机') {
+        const t = getAirType(L);
+        carbonModeText = `飞机（${t === '飞机短途' ? '短途' : '中长途'}）`;
+        carbon = calcCarbon(t, L, n);
+      } else {
+        carbon = calcCarbon(mode, L, n);
+      }
+
+      document.getElementById('distanceText').textContent = round2(L);
+      document.getElementById('peopleText').textContent = n;
+      document.getElementById('modeText').textContent = carbonModeText;
+      document.getElementById('carbonText').textContent = round2(carbon);
+      document.getElementById('summaryCard').style.display = 'block';
+    }
+
+    // ---------- 城市/区县列表（直接使用 window.CN_CITIES，已包含全部县级数据） ----------
+    function normalizeKey(s) {
+      return String(s || '').trim().toLowerCase();
+    }
+
+    function cityMatches(city, q) {
+      if (!q) return true;
+      const key = normalizeKey(q);
+      return city.name.includes(q.trim()) || city.pinyin.includes(key);
+    }
+
+    function groupCities(cities) {
+      const groups = new Map();
+      for (const c of cities) {
+        const k = (c.initial || '#').toUpperCase();
+        if (!groups.has(k)) groups.set(k, []);
+        groups.get(k).push(c);
+      }
+      const keys = Array.from(groups.keys()).sort((a, b) => a.localeCompare(b));
+      for (const k of keys) {
+        groups.get(k).sort((a, b) => a.pinyin.localeCompare(b.pinyin));
+      }
+      return { keys, groups };
+    }
+
+    function renderHot() {
+      const el = document.getElementById('hotCities');
+      const allCities = window.CN_CITIES || [];
+      
+      // 为每个热门城市找到匹配的区县（优先精确匹配，否则找包含城市名的第一个）
+      const hot = HOT_CITY_NAMES.map(cityName => {
+        // 先找精确匹配
+        let found = allCities.find(c => c.name === cityName);
+        if (found) return found;
+        
+        // 再找包含城市名的（如"北京市 东城区"包含"北京"）
+        found = allCities.find(c => (c.name || '').includes(cityName));
+        if (found) {
+          // 创建一个显示用的对象，显示名改为城市名，但保留完整数据用于选择
+          return { ...found, displayName: cityName, originalName: found.name };
+        }
+        return null;
+      }).filter(Boolean);
+      
+      el.innerHTML = hot.map(c => {
+        const displayName = c.displayName || c.name;
+        return `<div class="chip" data-name="${c.name}">${displayName}</div>`;
+      }).join('');
+      
+      el.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => selectCityByName(chip.dataset.name));
+      });
+    }
+
+    function selectCityByName(name) {
+      const city = (window.CN_CITIES || []).find(c => c.name === name);
+      if (city) selectCity(city);
+    }
+
+    function selectCity(city) {
+      if (state.picking === 'from') state.from = city;
+      else state.to = city;
+
+      // 历史：只保留最近 6 条
+      try {
+        const key = 'carbon_city_history';
+        const old = JSON.parse(localStorage.getItem(key) || '[]');
+        const next = [city.name, ...old.filter(x => x !== city.name)].slice(0, 6);
+        localStorage.setItem(key, JSON.stringify(next));
+      } catch {}
+
+      renderCalcHeader();
+      backToCalc();
+    }
+
+    function renderCalcHeader() {
+      const fromEl = document.getElementById('fromText');
+      const toEl = document.getElementById('toText');
+      if (state.from) {
+        fromEl.textContent = state.from.name;
+        fromEl.classList.remove('placeholder');
+      } else {
+        fromEl.textContent = '请选择';
+        fromEl.classList.add('placeholder');
+      }
+      if (state.to) {
+        toEl.textContent = state.to.name;
+        toEl.classList.remove('placeholder');
+      } else {
+        toEl.textContent = '请选择';
+        toEl.classList.add('placeholder');
+      }
+    }
+
+    async function renderCityList() {
+      const listEl = document.getElementById('cityList');
+      const indexEl = document.getElementById('indexBar');
+      const q = document.getElementById('citySearch').value;
+
+      const qTrim = String(q || '').trim();
+
+      const all = window.CN_CITIES || [];
+      // 过滤：支持中文名和拼音模糊搜索
+      const filtered = all.filter(c => cityMatches(c, qTrim));
+
+      const { keys, groups } = groupCities(filtered);
+
+      // 列表渲染（分组 + 城市项）
+      const html = keys.map(k => {
+        const items = groups.get(k) || [];
+        const itemHtml = items.map(c => `
+          <div class="city-item" data-name="${c.name}">
+            <div>
+              <div style="font-weight:700;">${c.name}</div>
+              <div class="city-sub">${c.pinyin || ''}</div>
+            </div>
+            <div class="city-sub">${k}</div>
+          </div>
+        `).join('');
+        return `
+          <div class="group" id="grp-${k}">
+            <div class="group-header">${k}</div>
+            ${itemHtml}
+          </div>
+        `;
+      }).join('');
+
+      listEl.innerHTML = html || `<div class="city-item"><div>无匹配结果</div></div>`;
+
+      // 点击选择
+      listEl.querySelectorAll('.city-item[data-name]').forEach(item => {
+        item.addEventListener('click', () => selectCityByName(item.dataset.name));
+      });
+
+      // 右侧索引：根据已有分组字母或 A-Z
+      const letters = keys.length ? keys : 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+      indexEl.innerHTML = letters.map(k => `<div class="idx" data-k="${k}">${k}</div>`).join('');
+      indexEl.querySelectorAll('.idx').forEach(node => {
+        node.addEventListener('click', () => {
+          const target = document.getElementById(`grp-${node.dataset.k}`);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      });
+    }
+
+    // ---------- 事件绑定 ----------
+    document.getElementById('pickFrom').addEventListener('click', () => openCityPicker('from'));
+    document.getElementById('pickTo').addEventListener('click', () => openCityPicker('to'));
+    document.getElementById('backBtn').addEventListener('click', backToCalc);
+    document.getElementById('citySearch').addEventListener('input', renderCityList);
+
+    document.getElementById('swapBtn').addEventListener('click', () => {
+      const tmp = state.from;
+      state.from = state.to;
+      state.to = tmp;
+      renderCalcHeader();
+    });
+
+    document.getElementById('mode').addEventListener('change', (e) => {
+      state.mode = e.target.value;
+    });
+    document.getElementById('people').addEventListener('change', (e) => {
+      state.people = parseInt(e.target.value, 10) || 1;
+    });
+    document.getElementById('calcBtn').addEventListener('click', computeAndRender);
+
+    // 国际 Tab 仅做禁用展示（按需求：仅国内-国内）
+    document.getElementById('tabIntl').addEventListener('click', () => {
+      alert('当前仅支持国内城市（国内 → 国内）');
+    });
+    document.getElementById('tabCN').addEventListener('click', () => {});
+
+    // 初始化
+    renderHot();
+    renderCalcHeader();
+  </script>
+</body>
+</html>

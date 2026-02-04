@@ -183,25 +183,6 @@
     /* City 选择页 */
     .view { display: none; }
     .view.active { display: block; }
-    .tabs {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 10px;
-      margin-bottom: 8px;
-      color: var(--muted);
-      font-weight: 650;
-    }
-    .tab {
-      text-align: center;
-      padding: 10px 0;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-    }
-    .tab.active {
-      color: var(--text);
-      border-bottom-color: var(--primary);
-    }
     .section-title {
       font-size: 0.9rem;
       font-weight: 650;
@@ -210,17 +191,18 @@
     }
     .chips {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 10px;
+      grid-template-columns: repeat(4, 1fr); /* 每行 4 个 */
+      gap: 8px;
     }
     .chip {
       background: var(--chip);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 10px;
+      border-radius: 8px;
+      padding: 6px 4px;           /* 高度更矮一些 */
+      font-size: 0.82rem;        /* 字号略小 */
       text-align: center;
       cursor: pointer;
-      font-weight: 650;
+      font-weight: 600;
       color: var(--text);
       user-select: none;
     }
@@ -260,10 +242,10 @@
     .city-item:last-child { border-bottom: none; }
     .city-sub { color: var(--muted); font-size: 0.82rem; }
     .index-bar {
-      position: absolute;
-      right: 6px;
-      top: 10px;
-      bottom: 10px;
+      position: fixed;           /* 贯穿整个页面右侧 */
+      right: 4px;
+      top: 80px;
+      bottom: 40px;
       display: flex;
       flex-direction: column;
       justify-content: center;
@@ -386,11 +368,6 @@
           <span style="color:#6a826a;">🔎</span>
           <input id="citySearch" type="text" placeholder="请输入目的城市/车站名" autocomplete="off" />
         </div>
-
-        <div class="tabs" aria-label="范围">
-          <div class="tab active" id="tabCN">国内</div>
-          <div class="tab" id="tabIntl" title="当前仅支持国内">国际</div>
-        </div>
       </div>
 
       <div class="section-title">热门城市</div>
@@ -415,7 +392,7 @@
       '飞机长途': 0.18  // L >= 1000 km
     };
 
-    const HOT_CITY_NAMES = ['北京','上海','杭州','广州','南京','成都','西安','郑州','武汉','长沙','苏州','厦门','深圳','天津'];
+    const HOT_CITY_NAMES = ['北京','上海','广州','深圳','杭州','南京','成都','西安'];
 
     const state = {
       picking: 'from', // 'from' | 'to'
@@ -667,12 +644,6 @@
       state.people = parseInt(e.target.value, 10) || 1;
     });
     document.getElementById('calcBtn').addEventListener('click', computeAndRender);
-
-    // 国际 Tab 仅做禁用展示（按需求：仅国内-国内）
-    document.getElementById('tabIntl').addEventListener('click', () => {
-      alert('当前仅支持国内城市（国内 → 国内）');
-    });
-    document.getElementById('tabCN').addEventListener('click', () => {});
 
     // 初始化
     renderHot();

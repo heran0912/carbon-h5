@@ -1,4 +1,4 @@
-// 使用中国县级 GeoJSON 生成地点选择页用的城市/区县数据
+// 使用中国市级 GeoJSON 生成地点选择页用的城市/区县数据
 // 运行方式（在 PowerShell / cmd 中）：
 //   cd d:\碳计算H5小程序
 //   npm install pinyin
@@ -16,7 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const GEOJSON_PATH = path.join(ROOT, '中国_县.geojson');
+const GEOJSON_PATH = path.join(ROOT, '中国_市.geojson');
 const OUTPUT_PATH = path.join(ROOT, 'cities.cn.js');
 
 // 兼容不同版本的 pinyin 包导出方式

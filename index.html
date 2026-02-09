@@ -385,8 +385,8 @@
   <script>
     // 与 碳排放计算公式.md 一致
     const COEFFICIENTS = {
-      '燃油车': 0.1453,
-      '电动车': 0.034,
+      '燃油车': 0.204,
+      '电动车': 0.0697,
       '高铁': 0.028,
       '飞机短途': 0.24, // L < 1000 km
       '飞机长途': 0.18  // L >= 1000 km
@@ -429,7 +429,14 @@
 
     function calcCarbon(type, L, n) {
       const k = COEFFICIENTS[type];
-      return k * L * n;
+      // 根据最新公式：
+      // - 燃油车、电动车：C = k × L / n（人均排放，人数越多排放越小）
+      // - 高铁、飞机：C = k × L × n（总排放，人数越多排放越大）
+      if (type === '燃油车' || type === '电动车') {
+        return k * L / n;
+      } else {
+        return k * L * n;
+      }
     }
 
     // Haversine 估算球面距离（km）
